@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import supabase from '@/lib/supabase'
 
-// All score options as strings (since Supabase uses TEXT column type)
+// All score options as strings (TEXT column type)
 const scoreOptions = ['q/b', ...Array.from({ length: 10 }, (_, i) => (i + 1).toString())]
 
 export default function ScoreCell({ studentId, date, allScores, refreshScores }) {
@@ -15,16 +15,15 @@ export default function ScoreCell({ studentId, date, allScores, refreshScores })
   const [editing, setEditing] = useState(false)
 
   const handleSave = async () => {
-    const payload = { student_id: studentId, recorded_at: date, score }
+    const payload = {
+      student_id: studentId,
+      recorded_at: date,
+      score,
+    }
 
-    const { error } = existing
-      ? await supabase
-          .from('student_scores')
-          .update({ score })
-          .eq('id', existing.id)
-      : await supabase
-          .from('student_scores')
-          .insert(payload)
+    const { error } = await supabase
+      .from('student_scores')
+      .upsert(payload, { onConflict: ['student_id', 'recorded_at'] })
 
     if (!error) {
       setEditing(false)
@@ -32,7 +31,7 @@ export default function ScoreCell({ studentId, date, allScores, refreshScores })
         refreshScores()
       }
     } else {
-      alert('Error: ' + error.message)
+      alert('Error saving score: ' + error.message)
     }
   }
 
